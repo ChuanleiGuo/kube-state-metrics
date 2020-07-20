@@ -31,6 +31,19 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+var cnapTags = []string{
+	"cnap.baidubce.com/applicationName",
+	"cnap.baidubce.com/deploygroupName",
+	"cnap.baidubce.com/workspaceName",
+}
+
+const (
+	cnapApplicationName = "cnap.baidubce.com/applicationName"
+	cnapDeploygroupName = "cnap.baidubce.com/deploygroupName"
+	cnapWorkspaceName   = "cnap.baidubce.com/workspaceName"
+	cnapEnvironmentName = "cnap.baidubce.com/environmentName"
+)
+
 var (
 	descPodLabelsDefaultLabels = []string{"namespace", "pod"}
 	containerWaitingReasons    = []string{"ContainerCreating", "CrashLoopBackOff", "CreateContainerConfigError", "ErrImagePull", "ImagePullBackOff", "CreateContainerError", "InvalidImageName"}
@@ -61,6 +74,8 @@ var (
 					LabelValues: []string{p.Status.HostIP, p.Status.PodIP, string(p.UID), p.Spec.NodeName, createdByKind, createdByName, p.Spec.PriorityClassName, strconv.FormatBool(p.Spec.HostNetwork)},
 					Value:       1,
 				}
+
+				addcnapTags(&m, p)
 
 				return &metric.Family{
 					Metrics: []*metric.Metric{&m},
@@ -1070,4 +1085,25 @@ func lastTerminationReason(cs v1.ContainerStatus, reason string) bool {
 		return false
 	}
 	return cs.LastTerminationState.Terminated.Reason == reason
+}
+
+func addcnapTags(m *metric.Metric, p *v1.Pod) {
+	if v, ok := p.Annotations[cnapApplicationName]; ok {
+		m.LabelKeys = append(m.LabelKeys, "application_name")
+		m.LabelValues = append(m.LabelValues, v)
+	}
+
+	if v, ok := p.Annotations[cnapDeploygroupName]; ok {
+		m.LabelKeys = append(m.LabelKeys, "deploygroup_name")
+		m.LabelValues = append(m.LabelValues, v)
+	}
+
+	if v, ok := p.Annotations[cnapWorkspaceName]; ok {
+		m.LabelKeys = append(m.LabelKeys, "workspace_name")
+		m.LabelValues = append(m.LabelValues, v)
+	}
+	if v, ok := p.Annotations[cnapEnvironmentName]; ok {
+		m.LabelKeys = append(m.LabelKeys, "environment_name")
+		m.LabelValues = append(m.LabelValues, v)
+	}
 }
